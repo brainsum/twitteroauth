@@ -192,7 +192,6 @@ class TwitterOAuth extends Config
      */
     public function get($path, array $parameters = [])
     {
-        var_dump($this->api_host);
         return $this->http('GET', $this->api_host, $path, $parameters);
     }
 
