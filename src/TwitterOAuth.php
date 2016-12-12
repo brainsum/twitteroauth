@@ -30,6 +30,10 @@ class TwitterOAuth extends Config
     private $token;
     /** @var HmacSha1 OAuth 1 signature type used by Twitter */
     private $signatureMethod;
+    /** @var string Twitter API version */
+    private $api_version;
+    /** @var string Twitter API URL */
+    private $api_host;
 
     /**
      * Constructor
@@ -39,7 +43,7 @@ class TwitterOAuth extends Config
      * @param string|null $oauthToken       The Client Token (optional)
      * @param string|null $oauthTokenSecret The Client Token Secret (optional)
      */
-    public function __construct($consumerKey, $consumerSecret, $oauthToken = null, $oauthTokenSecret = null)
+    public function __construct($consumerKey, $consumerSecret, $oauthToken = null, $oauthTokenSecret = null, $api_version = null, $api_host = null)
     {
         $this->resetLastResponse();
         $this->signatureMethod = new HmacSha1();
@@ -49,6 +53,18 @@ class TwitterOAuth extends Config
         }
         if (empty($oauthToken) && !empty($oauthTokenSecret)) {
             $this->bearer = $oauthTokenSecret;
+        }
+        if (empty($api_version)) {
+            $this->api_version = static::API_VERSION;
+        }
+        else {
+            $this->api_version = $api_version;
+        }
+        if (empty($api_host)) {
+            $this->api_host = static::API_HOST;
+        }
+        else {
+            $this->api_host = $api_host;
         }
     }
 
@@ -114,7 +130,7 @@ class TwitterOAuth extends Config
         $this->resetLastResponse();
         $this->response->setApiPath($path);
         $query = http_build_query($parameters);
-        return sprintf('%s/%s?%s', self::API_HOST, $path, $query);
+        return sprintf('%s/%s?%s', $this->api_host, $path, $query);
     }
 
     /**
@@ -131,7 +147,7 @@ class TwitterOAuth extends Config
         $response = [];
         $this->resetLastResponse();
         $this->response->setApiPath($path);
-        $url = sprintf('%s/%s', self::API_HOST, $path);
+        $url = sprintf('%s/%s', $this->api_host, $path);
         $result = $this->oAuthRequest($url, 'POST', $parameters);
 
         if ($this->getLastHttpCode() != 200) {
@@ -157,7 +173,7 @@ class TwitterOAuth extends Config
         $method = 'POST';
         $this->resetLastResponse();
         $this->response->setApiPath($path);
-        $url = sprintf('%s/%s', self::API_HOST, $path);
+        $url = sprintf('%s/%s', $this->api_host, $path);
         $request = Request::fromConsumerAndToken($this->consumer, $this->token, $method, $url, $parameters);
         $authorization = 'Authorization: Basic ' . $this->encodeAppAuthorization($this->consumer);
         $result = $this->request($request->getNormalizedHttpUrl(), $method, $authorization, $parameters);
@@ -176,7 +192,8 @@ class TwitterOAuth extends Config
      */
     public function get($path, array $parameters = [])
     {
-        return $this->http('GET', self::API_HOST, $path, $parameters);
+        var_dump($this->api_host);
+        return $this->http('GET', $this->api_host, $path, $parameters);
     }
 
     /**
@@ -189,7 +206,7 @@ class TwitterOAuth extends Config
      */
     public function post($path, array $parameters = [])
     {
-        return $this->http('POST', self::API_HOST, $path, $parameters);
+        return $this->http('POST', $this->api_host, $path, $parameters);
     }
 
     /**
@@ -202,7 +219,7 @@ class TwitterOAuth extends Config
      */
     public function delete($path, array $parameters = [])
     {
-        return $this->http('DELETE', self::API_HOST, $path, $parameters);
+        return $this->http('DELETE', $this->api_host, $path, $parameters);
     }
 
     /**
@@ -215,7 +232,7 @@ class TwitterOAuth extends Config
      */
     public function put($path, array $parameters = [])
     {
-        return $this->http('PUT', self::API_HOST, $path, $parameters);
+        return $this->http('PUT', $this->api_host, $path, $parameters);
     }
 
     /**
@@ -300,7 +317,7 @@ class TwitterOAuth extends Config
     private function http($method, $host, $path, array $parameters)
     {
         $this->resetLastResponse();
-        $url = sprintf('%s/%s/%s.json', $host, self::API_VERSION, $path);
+        $url = sprintf('%s/%s/%s.json', $host, $this->api_version, $path);
         $this->response->setApiPath($path);
         $result = $this->oAuthRequest($url, $method, $parameters);
         $response = JsonDecoder::decode($result, $this->decodeJsonAsArray);
